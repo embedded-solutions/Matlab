@@ -301,11 +301,44 @@ MDAQTCPRECV.TerminateFcnSpec = 'SocketClose(int8 p1[], int32 p2)';
 MDAQTCPRECV.SampleTime = 'parameterized';
 MDAQTCPRECV.Options.supportsMultipleExecInstances = true;
 
+% CAN send
+CAN_SEND = legacy_code('initialize');
+CAN_SEND.SFunctionName = 'sfun_CAN_SEND';
+CAN_SEND.HeaderFiles = {'mdaqcan.h'};
+CAN_SEND.SourceFiles = {'mdaqcan.c'};
+CAN_SEND.IncPaths = {'mdaq'};
+CAN_SEND.SrcPaths = {'mdaq'};
+CAN_SEND.OutputFcnSpec = 'mdaqcan_send(int8 u1[1], uint32 u2[1], uint8 u3[8])';
+CAN_SEND.SampleTime = 'parameterized';
+CAN_SEND.Options.supportsMultipleExecInstances = true;
+
+% CAN recv
+CAN_RECV = legacy_code('initialize');
+CAN_RECV.SFunctionName = 'sfun_CAN_RECV';
+CAN_RECV.HeaderFiles = {'mdaqcan.h'};
+CAN_RECV.SourceFiles = {'mdaqcan.c'};
+CAN_RECV.IncPaths = {'mdaq'};
+CAN_RECV.SrcPaths = {'mdaq'};
+CAN_RECV.OutputFcnSpec = 'mdaqcan_recv(int8 y1[1], uint32 y2[1], uint8 y3[8])';
+CAN_RECV.SampleTime = 'parameterized';
+CAN_RECV.Options.supportsMultipleExecInstances = true;
+
+% CAN configure
+CAN_CONF = legacy_code('initialize');
+CAN_CONF.SFunctionName = 'sfun_CAN_CONF';
+CAN_CONF.HeaderFiles = {'mdaqcan.h'};
+CAN_CONF.SourceFiles = {'mdaqcan.c'};
+CAN_CONF.IncPaths = {'mdaq'};
+CAN_CONF.SrcPaths = {'mdaq'};
+CAN_CONF.StartFcnSpec = 'mdaqcan_conf(uint32 p1)';
+CAN_CONF.SampleTime = 'parameterized';
+CAN_CONF.Options.supportsMultipleExecInstances = true;
+
 %% Put multiple registration files together
 def = [MDAQLED(:);MDAQADC(:);MDAQDAC(:);MDAQQEP(:);MDAQENC(:);MDAQMEMWR(:);MDAQMEMRD(:);MDAQPRUREGGET(:);...
        MDAQPRUREGSET(:);MDAQDIOCONF(:);MDAQDIOSET(:);MDAQDIOGET(:);MDAQFNCKEY(:);MDAQUARTCONF(:);MDAQUARTSEND(:);...
        MDAQUARTRECV(:);MDAQPWM(:);RCCONTROLLER(:);TOFILE(:);MDAQUDPSEND(:);MDAQUDPRECV(:);...
-       MDAQTCPSEND(:);MDAQTCPRECV(:)];
+       MDAQTCPSEND(:);MDAQTCPRECV(:);CAN_RECV(:);CAN_SEND(:);CAN_CONF(:)];
 
 %% Legacy Code Tool
 % Generate, compile and link S-function for simulation

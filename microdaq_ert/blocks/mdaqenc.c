@@ -6,7 +6,7 @@ void ENCInit( unsigned char Channel )
 {
 #if (!defined MATLAB_MEX_FILE) && (!defined MDL_REF_SIM_TGT)
     /* TODO: add initial posistion in ENC block */ 
-    mdaq_enc_init(Channel, 0);
+    mdaq_enc_init(Channel, 0, 0);
 #endif
 }
 
@@ -16,7 +16,7 @@ void ENCStep(unsigned char Channel, int *position, unsigned char *dir, unsigned 
     static int pos_prev; 
     if ( reset != 0 ) 
     {
-        mdaq_enc_init(Channel, 0);
+        mdaq_enc_init(Channel, 0, 0);
         *dir = 0; 
         *position = 0; 
         pos_prev = 0; 

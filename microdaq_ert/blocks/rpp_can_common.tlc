@@ -1,0 +1,133 @@
+%% Copyright (C) 2014 Czech Technical University in Prague
+%%
+%% Authors:
+%%     Michal Horn  <hornmich@fel.cvut.cz>
+%%     Michal Sojka <sojkam1@fel.cvut.cz>
+%%     Pavel Pisa <pisa@cmp.felk.cvut.cz> - author of SocketCAN port
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are
+%% met:
+%%
+%% 1. Redistributions of source code must retain the above copyright
+%%    notice, this list of conditions and the following disclaimer.
+%%
+%% 2. Redistributions in binary form must reproduce the above copyright
+%%    notice, this list of conditions and the following disclaimer in the
+%%    documentation and/or other materials provided with the
+%%    distribution.
+%%
+%% 3. Neither the name of the copyright holder nor the names of its
+%%    contributors may be used to endorse or promote products derived
+%%    from this software without specific prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+%% A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+%% HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+%% LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+%% DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+%% THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+%%
+%% File : rpp_can_common.tlc
+%% Abstract:
+%%     TLC file with common functions and variables for sfunction_canreceive, sfunction_cansetup and sfunction_cantransmit
+%%
+%% References:
+%%     Coding Convention: refs/rtw_tlc.pdf p. 58 (TODO)
+%%
+
+%% Function: RppCANCommonBlockTypeSetup ========================================
+%% 	Declares and initializes all common variables and constants.
+
+%function RppCANCommonBlockTypeSetup() void
+  %if EXISTS("::_RPP_MAX_MAILBOX_CNT") == 0
+	%assign ::_RPP_MAX_MAILBOX_CNT = 64
+
+	/% Global data structure used in call CAN blocks %/
+	%createrecord ::Rpp { Can { ...
+	  Tx { NumBlocks 0 } ...
+	  Rx { NumBlocks 0 } ...
+	}}
+
+	/% Add records for helping with message object allocation  %/
+	%foreach i = 3  %% We have 3 CAN controllers
+	  %addtorecord Rpp.Can Ctrl {}
+	%endforeach
+
+	%<LibAddToCommonIncludes("<mdaq_can.h>")>
+  %endif
+%endfunction
+
+%function RppCanAssignMsgObj(msgObjNum, blockInfo) void
+  %if msgObjNum < 1 || msgObjNum > ::_RPP_MAX_MAILBOX_CNT
+	%<LibBlockReportError(block, "Invalid mailbox number!")>
+  %endif
+  %addtorecord Rpp.Can.Ctrl[blockInfo.Controller-1] MsgObj%<msgObjNum>UsedBy blockInfo
+  %assign blockInfo.MsgObj = msgObjNum
+%endfunction
+
+%function RppCanGetBlockInfoFromMsgObj(module, mailbox_number)
+  %return Rpp.Can.Ctrl[module-1].MsgObj%<mailbox_number>UsedBy
+%endfunction
+
+%function RppCanIsMsgObjAssigned(module, mailbox_number)
+  %return ISFIELD(Rpp.Can.Ctrl[%<module-1>], "MsgObj%<mailbox_number>UsedBy")
+%endfunction
+
+%% Function: RppFindFreeMailboxNumber =========================================
+%%	Returns the lowest possible free mailbox number or 0 if no mailbox is free.
+
+%function RppFindFreeMailboxNumber(module) void
+	%foreach mn = ::_RPP_MAX_MAILBOX_CNT + 1
+	    %if mn == 0
+		  %continue
+		%endif
+		%if RppCanIsMsgObjAssigned(module, mn) == 0
+			%return %<mn>
+		%endif
+	%endforeach
+	%return 0
+%endfunction
+
+%% Function: RppPlaceAutomaticMailboxNumber ===================================
+%% 	Assignes an automaticaly determined mailbox number for the CAN block.
+
+%function RppPlaceAutomaticMailboxNumber(blockInfo) void
+	%assign msg_obj_number = RppFindFreeMailboxNumber(blockInfo.Controller)
+	%if %<msg_obj_number> == 0
+		%<LibBlockReportError(block, "Too many blocks in one module!")>
+	%endif
+	%addtorecord blockInfo ManualMsgObj 0 /% For MsgObj collision detection %/
+	%<RppCanAssignMsgObj(msg_obj_number, blockInfo)>
+%endfunction
+
+%% Function: RppPlaceManualMailboxNumber ======================================
+
+%% Assigns a manualy specified mailbox number to the CAN blocks.
+%% Reports collisions with other manually assigned blocks and optionally
+%% reassignes mailbox numbers of previously assigned automatic blocks.
+%%
+%%	Params:	msg_obj_num		The requested number of the mailbox.
+
+%function RppPlaceManualMailboxNumber(blockInfo, msg_obj_number) void
+	%if RppCanIsMsgObjAssigned(blockInfo.Controller, msg_obj_number)
+	  %assign prevBlockInfo = RppCanGetBlockInfoFromMsgObj(blockInfo.Controller, msg_obj_number)
+	  %if prevBlockInfo.ManualMsgObj
+		%<LibBlockReportError(block, "Colliding mailbox number found!")>
+	  %endif
+	  %assign new_msg_obj_number = RppFindFreeMailboxNumber(blockInfo.Controller)
+	  %if new_msg_obj_number == 0
+		%<LibBlockReportError(block, "Too many blocks in one module!")>
+	  %endif
+	  %<RppCanAssignMsgObj(new_msg_obj_number, prevBlockInfo)>
+	%endif
+	%addtorecord blockInfo ManualMsgObj 1 /% For MsgObj collision detection %/
+	%<RppCanAssignMsgObj(msg_obj_number, blockInfo)>
+%endfunction
+
+%% [EOF]

@@ -6,6 +6,7 @@ void ENCInit( unsigned char Channel )
 {
 #if (!defined MATLAB_MEX_FILE) && (!defined MDL_REF_SIM_TGT)
     /* TODO: add initial posistion in ENC block */ 
+    mdaq_dio_init(); 
     mdaq_enc_init(Channel, 0, 0);
 #endif
 }

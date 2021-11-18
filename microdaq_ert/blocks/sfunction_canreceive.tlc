@@ -1,0 +1,173 @@
+%% Copyright (C) 2014 Czech Technical University in Prague
+%%
+%% Authors:
+%%     Michal Horn  <hornmich@fel.cvut.cz>
+%%     Michal Sojka <sojkam1@fel.cvut.cz>
+%%     Pavel Pisa <pisa@cmp.felk.cvut.cz> - author of SocketCAN port
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are
+%% met:
+%%
+%% 1. Redistributions of source code must retain the above copyright
+%%    notice, this list of conditions and the following disclaimer.
+%%
+%% 2. Redistributions in binary form must reproduce the above copyright
+%%    notice, this list of conditions and the following disclaimer in the
+%%    documentation and/or other materials provided with the
+%%    distribution.
+%%
+%% 3. Neither the name of the copyright holder nor the names of its
+%%    contributors may be used to endorse or promote products derived
+%%    from this software without specific prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+%% A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+%% HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+%% LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+%% DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+%% THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+%%
+%% File : sfunction_canreceive.tlc
+%% Abstract:
+%%     TLC file for configuring the CAN RX buffer on the TI TMS570LS3137 MCU
+%%
+%% References:
+%%     BlockTypeSetup() : refs/rtw_tlc.pdf p. 277
+%%     Outputs()        : refs/rtw_tlc.pdf p. 281
+
+
+%implements sfunction_canreceive "C"
+
+%include "common.tlc"
+%include "rpp_can_common.tlc"
+
+%% Function: BlockTypeSetup ====================================================
+%function BlockTypeSetup(block, system) void
+    %<RppCommonBlockTypeSetup(block, system)>
+	%<RppCANCommonBlockTypeSetup()>
+%endfunction
+
+%% Function: BlockInstanceSetup ================================================
+%function BlockInstanceSetup(block, system) void
+
+	%assign module_id_par = LibBlockParameterValue(module_id, 0)
+	%assign mailbox_num_par = LibBlockParameterValue(mailbox_id, 0)
+	%assign message_type_par = LibBlockParameterValue(message_type, 0)
+	%assign message_id_par = LibBlockParameterValue(message_id, 0)
+	%assign data_type_par = LibBlockParameterValue(data_type, 0)
+	%assign message_filter_par = LibBlockParameterValue(message_filter, 0)
+	%assign message_mask_par = LibBlockParameterValue(message_mask, 0)
+	%assign mailbox_auto_par = LibBlockParameterValue(mailbox_auto, 0)
+
+    %if message_filter_par == 1
+            %assign mask = 8388607 %% 0x7FFFFF
+    %else
+            %assign mask = message_mask_par
+    %endif
+
+	%% This seems to be the only way to add a record to an array. The
+	%% other way - creating the record with %createrecord and adding
+	%% it later with %addtorecord doesn't work.
+	%addtorecord Rpp.Can.Rx Block { ...
+	  HwObj Rpp.Can.Rx.NumBlocks; ...
+	  Controller module_id_par; ...
+	  MsgObj 0; /% Invalid MsgObj - proper value will be assigned later %/ ...
+	  Type message_type_par; ...
+	  Id message_id_par; ...
+	  Mask mask; ...
+	  Name "%<LibGetBlockName(block)>" ...
+	}
+	%assign blockInfo = Rpp.Can.Rx.Block[Rpp.Can.Rx.NumBlocks] /% create alias to the record %/
+	%if %<mailbox_auto_par>==1
+	  %<RppPlaceAutomaticMailboxNumber(blockInfo)>
+	%else
+	  %<RppPlaceManualMailboxNumber(blockInfo, mailbox_num_par)>
+	%endif
+
+	/% Remember which blockInfo record is associated wit this block %/
+	 %addtorecord block RppRxInfo blockInfo
+	%assign Rpp.Can.Rx.NumBlocks = Rpp.Can.Rx.NumBlocks + 1
+%endfunction
+
+%% Function: Start =============================================================
+%function Start(block, system) Output
+
+    %if !SLibCodeGenForSim()
+
+	  %if EXISTS(::rpp_can_config_present) == 0
+		%<LibBlockReportError(block, "CAN Configuration block not present!")>
+	  %endif
+    %endif
+
+
+%endfunction
+
+%% Function: Outputs ===========================================================
+%function Outputs(block, system) Output
+
+  %if !SLibCodeGenForSim()
+	%assign data_type_par = LibBlockParameterValue(data_type, 0)
+	%assign message = LibBlockOutputSignal(1, "", "", 1)
+
+	{
+      can_rx_header_t rx_header = {0};
+      unsigned char can_rx_data[8] = {0}; 
+
+       while(mdaq_can_read_fifo(%<RppRxInfo.HwObj> ? CAN2 : CAN1, 0, &rx_header, can_rx_data) > 0)
+       {
+
+        %if %<data_type_par>==4
+            // CAN_MESSAGE
+            memset(&%<message>, 0, sizeof(%<message>));
+            %<message>.Length = rx_header.DLC;
+            %<message>.ID = rx_header.ID;
+            %<message>.Extended =  rx_header.XTD;
+            int i;
+            for (i = 0; i < rx_header.DLC; i++ ) 
+            {
+              %<message>.Data[i] = can_rx_data[i];
+            }
+	    %elseif %<data_type_par>==3
+            // uint32
+            unsigned int msg = (can_rx_data[0]) |
+                                              (can_rx_data[1]<<8) |
+                                              (can_rx_data[2]<<16) |
+                                              (can_rx_data[3]<<24);
+            if ( rx_header.DLC < 4)
+                    msg &= 0xffffffff << (8 *  rx_header.DLC);
+            %<message> = msg;
+
+	    %elseif %<data_type_par>==2
+            // uint16
+            unsigned int msg = (can_rx_data[0]) |
+                                             (can_rx_data[1]<<8);
+            if (dlc < 2)
+                msg &= 0xffffffff << (8 *  rx_header.DLC);
+            %<message> = msg;
+
+	    %else
+            // uint8
+            unsigned int msg =  can_rx_data[0];
+            %<message> = msg;
+	    %endif
+
+	    %% Call a function to process the received message via function-call subsystem
+	    %foreach callIdx = NumSFcnSysOutputCalls
+		%if LibIsEqual(SFcnSystemOutputCall[callIdx].BlockToCall,"unconnected")
+		  %continue
+		%endif
+		%% call the downstream system
+		%<LibBlockExecuteFcnCall(block, callIdx)>\
+	    %endforeach
+       }
+	  }
+  %endif
+%endfunction
+
+%% [EOF]

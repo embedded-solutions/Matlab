@@ -1,6 +1,6 @@
 /* mdaq_dio.h -- DIO driver for MicroDAQ device
  *
- * Copyright (C) 2013 Embedded Solutions
+ * Copyright (C) 2013-2021 Embedded Solutions
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms
@@ -12,9 +12,15 @@
 
 #include <stdint.h>
 
-#define     LOW     (0)
-#define     HIGH    (1)
+#define DIO_ERROR           (0xff)
+#define DIO_STATE_LOW       (0)
+#define DIO_STATE_HIGH      (1)
 
+#define DIO_DIR_OUTPUT      (0)
+#define DIO_DIR_INPUT       (1)
+
+#define DIO_FUNC_SET        (0)
+#define DIO_FUNC_UNSET      (1)
 
 /* DIO channels */
 enum mdaq_dio_ids
@@ -43,19 +49,13 @@ enum mdaq_dio_ids
 	DIO22,
 	DIO23,
 	DIO24,
-	DIO25,
-	DIO26,
-	DIO27,
-	DIO28,
-	DIO29,
-	DIO30,
-	DIO31,
-	DIO32,
 	F1,
+	SYS,
 	F2,
 	D1,
-	D2
+	D2,
 };
+
 
 enum mdaq_bank_ids
 {
@@ -67,12 +67,20 @@ enum mdaq_bank_ids
 
 enum mdaq_dio_func_ids
 {
-	ENC1_FUNC,
-	ENC2_FUNC,
-	PWM1_FUNC,
-	PWM2_FUNC,
-	PWM3_FUNC,
-	UART_FUNC
+    DIO_FUNC = 0,
+    ENC_A_FUNC,
+	ENC_B_FUNC,
+	ENC_I_FUNC,
+	ENC_S_FUNC,
+	PWM_A_FUNC,
+	PWM_B_FUNC,
+	CNT_FUNC,
+	AI_CLK_FUNC,
+	AO_CLK_FUNC,
+	UART_TX_FUNC,
+    UART_RX_FUNC,
+    HS_DO_FUNC,
+    HS_DI_FUNC,
 };
 
 enum mdaq_bank_dir_ids
@@ -81,9 +89,14 @@ enum mdaq_bank_dir_ids
     DIO_INPUT = 1
 };
 
-void mdaq_bank_dir( uint8_t bank, uint8_t dir);
-int  mdaq_dio_func( uint8_t function, uint8_t enable);
-void mdaq_dio_write( uint8_t dio, uint8_t value);
+uint8_t mdaq_dio_init( void);
+uint8_t mdaq_dio_is_initialized(void);
+uint8_t mdaq_dio_dir( uint8_t dio, uint8_t dir);
+uint8_t mdaq_bank_dir( uint8_t bank, uint8_t dir);
+
+uint8_t mdaq_dio_write( uint8_t dio, uint8_t value);
 uint8_t mdaq_dio_read( uint8_t dio);
+
+uint8_t mdaq_dio_func( uint8_t dio, uint8_t function);
 
 #endif /* MDAQ_DIO_ */ 

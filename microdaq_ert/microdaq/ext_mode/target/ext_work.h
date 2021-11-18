@@ -38,17 +38,8 @@ extern "C" {
     extern void rtExtModeTornadoSetPortInExtUD(const int_T port);
 
 #elif defined(C6000_EXT_MODE)
-    /* C6000 headers*/
-    #include <xdc/std.h>
-    #include <xdc/runtime/System.h>
-
-    #include <ti/sysbios/BIOS.h>
-    #include <ti/sysbios/knl/Clock.h>
-    #include <ti/sysbios/knl/Task.h>
-    #include <ti/sysbios/knl/Semaphore.h>
-    #include <ti/sysbios/hal/Timer.h>
-
-    #include <xdc/cfg/global.h>
+    
+    #include "mdaq_rtos.h"
 
     extern void rtExtModeC6000Startup( RTWExtModeInfo *ei,
                                        int_T          numSampTimes,
@@ -71,7 +62,7 @@ typedef struct {
         int_T          numSampTimes;
         boolean_T      *stopReqPtr;
 } ExtStepArgs;
-extern void rtExtModeOneStep(UArg, ExtStepArgs *);
+extern void rtExtModeOneStep(uintptr_t, ExtStepArgs *);
 
 extern void rtExtModeCheckEndTrigger(void);
 

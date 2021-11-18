@@ -21,7 +21,7 @@
  * External Variables *
  **********************/
 #ifdef C6000_EXT_MODE
-extern Semaphore_Handle uploadSem;
+extern int uploadSem;
 #endif
 
 /******************************************************************************
@@ -962,8 +962,8 @@ PUBLIC void UploadPrepareForFinalFlush(int32_T upInfoIdx)
     /* Let upload server run to ensure that term pkt is sent to host. One
        semGive() is for the background task and the other is for the explicit
        call to rt_UploadServerWork() in DisconnectFromHost(). */
-    Semaphore_post(uploadSem);
-    Semaphore_post(uploadSem);
+    mdaq_rtos_sem_post(uploadSem);
+    mdaq_rtos_sem_post(uploadSem);
 #endif
 	
 } /* end UploadPrepareForFinalFlush */
@@ -1266,7 +1266,7 @@ PUBLIC void UploadCancelLogging(int32_T upInfoIdx)
          * for all but the TRIGGERED_FIRED case since the upload server is
          * inactive).
          */
-        Semaphore_post(uploadSem);
+        mdaq_rtos_sem_post(uploadSem);
 #endif
         break;
     
@@ -1684,7 +1684,7 @@ EXIT_POINT:
 #ifdef C6000_EXT_MODE
         else if (trigInfo->state == TRIGGER_FIRED) {
             /* allow upload server to run - if data needs to be uploaded */
-            Semaphore_post(uploadSem);
+            mdaq_rtos_sem_post(uploadSem);
         }
 #endif
     } 
@@ -1776,7 +1776,7 @@ PUBLIC void UploadCheckEndTrigger(int32_T upInfoIdx)
 #ifdef C6000_EXT_MODE
     if (trigInfo->state == TRIGGER_TERMINATING) {
         /* Let upload server run to ensure that term pkt is sent to host. */
-        Semaphore_post(uploadSem);
+        mdaq_rtos_sem_post(uploadSem);
     }
 #endif
 } /* end UploadCheckEndTrigger */

@@ -21,18 +21,8 @@
 #include "ext_svr_c6000.h"
 #include "ext_svr_transport_c6000.h"
 #include "ext_work.h"
-//
-// DSP/BIOS headers
-//
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
 
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Clock.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/Semaphore.h>
-
-#include <xdc/cfg/global.h>
+#include "mdaq_rtos.h"
 
 // Define external mode simulation states
 typedef enum {
@@ -48,13 +38,15 @@ typedef enum {
 int_T            volatile startModel       = FALSE;
 TargetSimStatus  volatile modelStatus      = TARGET_STATUS_WAITING_TO_START;
 ExtModeSimStatus volatile extmodeSimStatus = EXTMODE_STARTUP;
-Semaphore_Handle uploadSem;
-Semaphore_Handle extStartStopSem;
-Task_Handle extern_pkt_tid;
-Task_Handle extern_upload_tid;
+int uploadSem;
+int extStartStopSem;
+int extern_pkt_tid;
+int extern_upload_tid;
 
 // External mode task stack sizes
-#define EXT_MODE_TSK_STACK_SIZE (6144)
+// TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//#define EXT_MODE_TSK_STACK_SIZE (6144)
+#define EXT_MODE_TSK_STACK_SIZE (0x800)
 uint8_T stack_pkt_tid[EXT_MODE_TSK_STACK_SIZE];
 uint8_T stack_upload_tid[EXT_MODE_TSK_STACK_SIZE];
 PRIVATE void rtExtModeInitUD(void);
@@ -64,7 +56,7 @@ PRIVATE void rtExtModeInitUD(void);
 
 /* TODO: should be called in ext_main.c */ 
 extern int_T rt_TermModel(void); 
-extern Clock_Handle rt_task_handle;
+//extern Clock_Handle rt_task_handle;
 
 ExtStepArgs sExtStepArgs;
 
@@ -73,25 +65,20 @@ void rtExtModeC6000Startup( RTWExtModeInfo *ei,
                             int_T          numSampTimes,
                             boolean_T      *stopReqPtr)
 {
-    Task_Params attr;
-    Task_Params_init(&attr);
-    Semaphore_Params sem_params; 
-    Semaphore_Params_init(&sem_params);
-
-    sem_params.mode = ti_sysbios_knl_Semaphore_Mode_BINARY; 
-  
+    mdaq_task_params_t params; 
+ 
     sExtStepArgs.ei = ei;
     sExtStepArgs.numSampTimes = numSampTimes;
     sExtStepArgs.stopReqPtr = stopReqPtr;
-    attr.arg1 = (UArg) &sExtStepArgs;
+
 
     // Set external mode state to 
     extmodeSimStatus = EXTMODE_STARTUP;
 
 	// Initialize semaphores used for external mode
 	// communication
-    uploadSem = Semaphore_create(1, &sem_params, NULL);
-    extStartStopSem = Semaphore_create(1, NULL, NULL);
+    uploadSem = mdaq_rtos_sem_create(1, MDAQ_SEM_BINARY);
+    extStartStopSem = mdaq_rtos_sem_create(1, MDAQ_SEM_NORMAL);
 
     // Pause until Ethernet network initialization completes
     //waitNetworkStartup();
@@ -102,12 +89,13 @@ void rtExtModeC6000Startup( RTWExtModeInfo *ei,
     rt_ExtModeInit();
 
     // Create external mode task
-    attr.priority = 1;
-    attr.stack = (Ptr) &stack_pkt_tid[0];
-    attr.stackSize = EXT_MODE_TSK_STACK_SIZE;
-    extern_pkt_tid = Task_create( (Task_FuncPtr) rtExtModeOneStep,
-        &attr, NULL );
-    if (extern_pkt_tid == NULL) 
+    params.arg1 = (uintptr_t) &sExtStepArgs;
+    params.priority = 1;
+    params.stack = (void *) &stack_pkt_tid[0];
+    params.stackSize = EXT_MODE_TSK_STACK_SIZE;
+    
+    extern_pkt_tid = mdaq_rtos_task_create( rtExtModeOneStep, &params );
+    if (extern_pkt_tid < 0) 
     {
         printf("handle taskpawn error");
     }
@@ -154,7 +142,7 @@ void rtExtModeC6000Cleanup(int_T numSampTimes)
 
 // This task is run at priority level 1, essentially a background
 // task. 
-void rtExtModeOneStep(UArg arg0, ExtStepArgs *arg1)
+void rtExtModeOneStep(uintptr_t arg0, ExtStepArgs *arg1)
 {
     // Process external mode packets and upload data
     //TSK_prolog( TSK_self() );
@@ -168,12 +156,12 @@ void rtExtModeOneStep(UArg arg0, ExtStepArgs *arg1)
     rt_ExtModeShutdown(numSampTimes);
     //TSK_epilog( TSK_self() );
     
-    /* TODO: */ 
-    Clock_delete( &rt_task_handle );
+    /* TODO: restore this call */ 
+   // Clock_delete( &rt_task_handle );
     rt_TermModel();
     
     // Signal completion of Pkt / Upload server work
-    Semaphore_post(extStartStopSem);
+    mdaq_rtos_sem_post(extStartStopSem);
 }
 
 void rtExtModeUpload(int_T tid, real_T taskTime)

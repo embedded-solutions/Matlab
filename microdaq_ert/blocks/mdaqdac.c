@@ -25,10 +25,10 @@ void DACInit(unsigned char *ch, unsigned char ch_count, float *range, double *in
     memset((void *)tmp_init_value, 0x0, sizeof(tmp_init_value));
 
     /* init DAC converter */
-    mdaq_ao_init(AO_SYNC);
+    mdaq_ao_init();
 
     /* set DAC ranges */
-    mdaq_ao_ch_config(ch, range, ch_count);
+    mdaq_ao_config_ch(ch, range, ch_count);
 
     k = 0;
     for(i = 0; i < ch_count; i++)

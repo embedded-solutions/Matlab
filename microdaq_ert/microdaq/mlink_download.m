@@ -10,10 +10,11 @@ end
 
 % Load MLink library
 TargetRoot = getpref('microdaq','TargetRoot');
+
 if ~libisloaded(mlinklib)
     loadlibrary([TargetRoot,'/MLink/',mlinklib],[TargetRoot,'/MLink/MLink.h']);
 end
-    
+
 result = mdaqOpen();
 if result < 0
     error(calllib(mlinklib,'mlink_error',result));
@@ -22,18 +23,13 @@ link_fd = libpointer('int32Ptr',result);
 
 % Upload DSP binary to MicroDAQ
 if upload == 1
-    result = calllib(mlinklib, 'mlink_dsp_upload', link_fd);
-    if result < 0
-        out = calllib(mlinklib,'mlink_error',result);
-        error('Error during uploading DSP firmware: %s',out);
-    end
-    disp('### Uploading DSP application to MicroDAQ...');
-    msgbox('DSP application upload complite!','Success');
+    msgbox('Uploading to supported!','Alert');
 else
 
     % Load DSP binary to MicroDAQ
     disp('### Loading DSP binary to MicroDAQ...');
-    result = calllib(mlinklib,'mlink_dsp_load',link_fd.Value,outfile,'');
+	disp(outfile);
+    result = calllib(mlinklib,'mlink_dsp_init',link_fd.Value,outfile, 100, 10);
     if result < 0
         out = calllib(mlinklib,'mlink_error',result);
         error('Error loading binary to MicroDAQ: %s',out);

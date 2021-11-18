@@ -20,13 +20,9 @@
   %<LibSetSourceFileSection(cFile, "Definitions", tmpBuf)>
   
   %openfile tmpBuf
+  #include "mdaq_rtos.h"
   #include "%<LibGetMdlPubHdrBaseName()>.h"
-  #include <xdc/std.h>
-  #include <xdc/runtime/System.h>
 
-  #include <ti/sysbios/BIOS.h>
-  #include <ti/sysbios/knl/Clock.h>
-  #include <ti/sysbios/hal/Timer.h>
   
   %assign SAMPLE_TIME = CAST("Unsigned",1000000*%<CompiledModel.FundamentalStepSize>)
   #define STEP_SIZE %<SAMPLE_TIME>
@@ -83,7 +79,8 @@
     /* Enable interrupts here */
   }
 
-  Void clk0Fxn(UArg arg0);
+  void clk0Fxn(uintptr_t arg0);
+  int init_model(void);
 
   %assign fcnReturns = "int_T"
   %assign fcnName = "main"
@@ -96,48 +93,30 @@
   %undef fcnRec
   %<fcnReturns> %<fcnName>(%<fcnParams>)
   {
-
-    /* Initialize model */
-    %<LibCallModelInitialize()>\
-     
-    Clock_Params clkParams;
-	Timer_Params user_sys_tick_params;
-    Timer_Handle user_sys_tick_timer;
-
-    /* Create a periodic Clock Instance with period = 1 system time units */
-    Clock_Params_init(&clkParams);
-    clkParams.period = 1;
-    clkParams.startFlag = TRUE;
-    Clock_create(clk0Fxn, 10, &clkParams, NULL);
-    
-    /* Create timer for user system tick */
-    Timer_Params_init(&user_sys_tick_params);
-    user_sys_tick_params.period = STEP_SIZE;
-    user_sys_tick_params.periodType = Timer_PeriodType_MICROSECS;
-    user_sys_tick_params.arg = 1;
-    
-	user_sys_tick_timer = Timer_create(1,
-    		(ti_sysbios_hal_Timer_FuncPtr)Clock_tick, &user_sys_tick_params, NULL);
-
-    if(user_sys_tick_timer == NULL)
-    {
-    	System_abort("Unable to create user system tick timer!");
-    }
-	
-    BIOS_start();
-
-    /* Terminate model */
-    /* %<LibCallModelTerminate()>\ */
+    mdaq_rtos_clock_create(get_model_tsamp(), clk0Fxn);
+    mdaq_rtos_start(0, init_model);
   }
 
 /*
  *  ======== clk0Fxn =======
  */
-Void clk0Fxn(UArg arg0)
+void clk0Fxn(uintptr_t arg0)
 {
     /* Base rate */
     rt_OneStep();
 }
+
+int init_model(void)
+{
+   /* Initialize model */
+    %<LibCallModelInitialize()>\
+}
+
+void terminate_model(void)
+{
+    %<LibCallModelTerminate()>\ 
+}
+
 
   %closefile tmpBuf
   

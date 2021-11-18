@@ -1,0 +1,143 @@
+%% Copyright (C) 2014 Czech Technical University in Prague
+%%
+%% Authors:
+%%     Michal Horn  <hornmich@fel.cvut.cz>
+%%     Michal Sojka <sojkam1@fel.cvut.cz>
+%%     Pavel Pisa <pisa@cmp.felk.cvut.cz> - author of SocketCAN port
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are
+%% met:
+%%
+%% 1. Redistributions of source code must retain the above copyright
+%%    notice, this list of conditions and the following disclaimer.
+%%
+%% 2. Redistributions in binary form must reproduce the above copyright
+%%    notice, this list of conditions and the following disclaimer in the
+%%    documentation and/or other materials provided with the
+%%    distribution.
+%%
+%% 3. Neither the name of the copyright holder nor the names of its
+%%    contributors may be used to endorse or promote products derived
+%%    from this software without specific prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+%% A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+%% HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+%% LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+%% DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+%% THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+%%
+%% File : sfunction_cantransmit.tlc
+%% Abstract:
+%%     TLC file for configuring the CAN TX buffer on the TI TMS570LS3137 MCU
+%%
+%% References:
+%%     BlockTypeSetup() : refs/rtw_tlc.pdf p. 277
+%%     Outputs()        : refs/rtw_tlc.pdf p. 281
+
+
+%implements sfunction_cantransmit "C"
+
+%include "common.tlc"
+%include "rpp_can_common.tlc"
+
+%% Function: BlockTypeSetup ====================================================
+%function BlockTypeSetup(block, system) void
+  %<RppCommonBlockTypeSetup(block, system)>
+  %<RppCANCommonBlockTypeSetup()>
+%endfunction
+
+%% Function: BlockInstanceSetup ================================================
+%function BlockInstanceSetup(block, system) void
+  %assign module_id_par = LibBlockParameterValue(module_id, 0)
+  %assign mailbox_num_par = LibBlockParameterValue(mailbox_id, 0)
+  %assign message_type_par = LibBlockParameterValue(message_type, 0)
+  %assign message_id_par = LibBlockParameterValue(message_id, 0)
+  %assign mailbox_auto_par = LibBlockParameterValue(mailbox_auto, 0)
+
+  %% This seems to be the only way to add a record to an array. The
+  %% other way - creating the record with %createrecord and adding
+  %% it later with %addtorecord doesn't work.
+  %addtorecord Rpp.Can.Tx Block { ...
+    HwObj Rpp.Can.Tx.NumBlocks; ...
+    Controller module_id_par; ...
+    MsgObj 0; /% Invalid MsgObj - proper value will be assigned later %/ ...
+    Type message_type_par; ...
+    Id message_id_par; ...
+    Name "%<LibGetBlockName(block)>" ...
+  }
+  %assign blockInfo = Rpp.Can.Tx.Block[Rpp.Can.Tx.NumBlocks] /% create alias to the record %/
+  %if %<mailbox_auto_par>==1
+    %<RppPlaceAutomaticMailboxNumber(blockInfo)>
+  %else
+    %<RppPlaceManualMailboxNumber(blockInfo, mailbox_num_par)>
+  %endif
+
+  /% Remember which blockInfo record is associated wit this block %/
+  %addtorecord block RppTxInfo blockInfo
+  %assign Rpp.Can.Tx.NumBlocks = Rpp.Can.Tx.NumBlocks + 1
+%endfunction
+
+%% Function: Start =============================================================
+%function Start(block, system) Output
+
+  %if !SLibCodeGenForSim()
+    %if EXISTS(::rpp_can_config_present) == 0
+      %<LibBlockReportError(block, "CAN bus configuration block not present!")>
+    %endif
+  %endif
+
+
+%endfunction
+
+%% Function: Outputs ===========================================================
+%function Outputs(block, system) Output
+  %if !SLibCodeGenForSim()
+    %assign message = LibBlockInputSignal(0, "", "", 0)
+    %assign msginput_data_type = LibBlockInputSignalDataTypeId(0)
+
+    {
+      can_tx_header_t tx_header = {0};
+      unsigned char can_tx_data[8] = {0}; 
+
+      %if %<msginput_data_type>==3
+	// Transmit uint8
+	tx_header.DLC = 1;
+	can_tx_data[0]= %<message>;
+
+      %elseif %<msginput_data_type>==5
+	// Transmit uint16
+	tx_header.DLC  = 2;
+	can_tx_data[0]= (%<message>&0xFF);
+	can_tx_data[1]= (%<message>&0xFF00)>>8;
+      %elseif %<msginput_data_type>==7
+	// Transmit uint32
+	tx_header.DLC = 4;
+	can_tx_data[0]= (%<message>&0xFF);
+	can_tx_data[1]= (%<message>&0xFF00)>>8;
+	can_tx_data[2]= (%<message>&0xFF0000)>>16;
+	can_tx_data[3]= (%<message>&0xFF000000)>>24;
+      %else
+	// Transmit CAN_MESSAGE
+	tx_header.DLC = %<message>.Length;
+	%foreach msg_index = 8
+	  can_tx_data[%<msg_index>]= %<message>.Data[%<msg_index>];
+	%endforeach
+      %endif
+     tx_header.ID=%<message>.ID;
+      if (%<RppTxInfo.Type> == 2)
+         tx_header.XTD = 0;
+    tx_header.FDF = 0;
+    mdaq_can_write_buffer(tx_config[0].channel - 1, 0, &tx_header, can_tx_data);
+    mdaq_can_transmit_buffer(tx_config[0].channel - 1, 0);
+      }
+    %endif
+  %endfunction
+
+  %% [EOF]

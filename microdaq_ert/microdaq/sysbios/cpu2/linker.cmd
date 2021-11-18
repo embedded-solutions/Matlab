@@ -1,0 +1,85 @@
+
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/mdaq_sysbios_pe66.oe66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/ipc.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/ti.pm_null.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/utils.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/ti.deh_vayu.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/ti.targets.rts6000.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/boot.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/sysbios.ae66"
+-l"/home/skibool/work/microdaq/src/e3000_dsplib/scilab_task/sysbios/ti.trace.ae66"
+
+--retain="*(xdc.meta)"
+
+--args 0x0
+-heap  0x0
+-stack 0x8000
+
+MEMORY
+{
+    L2SRAM_CACHE (RWX) : org = 0x800000, len = 0x20000
+    L2SRAM (RWX) : org = 0x820000, len = 0x28000
+    OCMC_RAM1 (RWX) : org = 0x40300000, len = 0x80000
+    OCMC_RAM2 (RWX) : org = 0x40400000, len = 0x100000
+    OCMC_RAM3 (RWX) : org = 0x40500000, len = 0x100000
+    EXT_CODE (RWX) : org = 0x95000000, len = 0x200000
+    EXT_DATA (RW) : org = 0x95200000, len = 0x400000
+    EXT_HEAP (RW) : org = 0x95600000, len = 0x500000
+    TRACE_BUF (RW) : org = 0x9f000000, len = 0x60000
+    EXC_DATA (RW) : org = 0x9f060000, len = 0x10000
+    PM_DATA (RWX) : org = 0x9f070000, len = 0x70000
+    SR_0 (RW) : org = 0xbfb00000, len = 0x100000
+}
+
+/* Cache setup */
+ti_sysbios_family_c66_Cache_l1dSize = 32768;
+ti_sysbios_family_c66_Cache_l1pSize = 32768;
+ti_sysbios_family_c66_Cache_l2Size = 0;
+
+-eti_sysbios_family_c64p_Hwi0
+--diag_suppress=10063
+
+SECTIONS
+{
+    ti_sdo_ipc_init: load > EXT_DATA, type = NOINIT
+}
+
+/*
+ * symbolic aliases for static instance objects
+ */
+xdc_runtime_Startup__EXECFXN__C = 1;
+xdc_runtime_Startup__RESETFXN__C = 1;
+xdc_rov_runtime_Mon__checksum = 1;
+xdc_rov_runtime_Mon__write = 1;
+
+SECTIONS
+{
+    .text: load >> EXT_CODE
+    .ti.decompress: load > EXT_CODE
+    .stack: load > EXT_DATA
+    GROUP: load > L2SRAM
+    {
+        .bss:
+        .neardata:
+        .rodata:
+    }
+    .cinit: load > EXT_DATA
+    .pinit: load >> EXT_DATA
+    .init_array: load > EXT_DATA
+    .const: load >> EXT_DATA
+    .data: load >> EXT_DATA
+    .fardata: load >> EXT_DATA
+    .switch: load >> EXT_DATA
+    .sysmem: load > EXT_DATA
+    .far: load >> EXT_DATA
+    .args: load > EXT_DATA align = 0x4, fill = 0 {_argsize = 0x0; }
+    .cio: load >> EXT_DATA
+    .ti.handler_table: load > EXT_DATA
+    .c6xabi.exidx: load > EXT_DATA
+    .c6xabi.extab: load >> EXT_DATA
+    .tracebuf: load > TRACE_BUF
+    .errorbuf: load > EXC_DATA
+    .vecs: load > EXT_CODE
+    .resource_table: load > 0x95000000, type = NOINIT
+    xdc.meta: load > EXT_DATA, type = COPY
+}

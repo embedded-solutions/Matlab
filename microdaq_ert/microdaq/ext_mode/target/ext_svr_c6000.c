@@ -31,15 +31,7 @@
 
 #if defined(C6000_EXT_MODE)
  /*C6000 headers*/
-    #include <xdc/std.h>
-    #include <xdc/runtime/System.h>
-
-    #include <ti/sysbios/BIOS.h>
-    #include <ti/sysbios/knl/Clock.h>
-    #include <ti/sysbios/knl/Task.h>
-    #include <ti/sysbios/knl/Semaphore.h>
-
-    #include <xdc/cfg/global.h>
+    #include "mdaq_rtos.h"
 #endif
 
 /*Real Time Workshop headers*/
@@ -72,7 +64,7 @@ extern void rtExtModeC6000Cleanup(int_T numSampTimes);
 extern int_T           volatile startModel;
 extern TargetSimStatus volatile modelStatus;
 #ifdef C6000_EXT_MODE
-extern Semaphore_Handle uploadSem;
+extern int uploadSem;
 #endif
 
 /********************
@@ -832,7 +824,8 @@ void UploadServerWork(int32_T upInfoIdx, int_T numSampTimes)
      * each time that data is added. Note that the call to Semaphore_pend
      * here is non-blocking. 
      */
-    if (!Semaphore_pend(uploadSem, 0)) goto EXIT_POINT;
+     
+    if (!mdaq_rtos_sem_pend(uploadSem, 0)) goto EXIT_POINT;
 #endif
 
     if (!connected) goto EXIT_POINT;
@@ -1101,8 +1094,8 @@ PUBLIC uint32_T rt_PktServerWork(RTWExtModeInfo *ei,
         PRINT_VERBOSE(("got EXT_MODEL_START packet.\n"));
 #ifdef C6000_EXT_MODE
         {
-            extern Semaphore_Handle extStartStopSem;
-            Semaphore_post(extStartStopSem);
+            extern int extStartStopSem;
+            mdaq_rtos_sem_post(extStartStopSem);
         }
 #endif
         startModel = TRUE;

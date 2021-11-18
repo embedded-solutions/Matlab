@@ -143,8 +143,8 @@ extern void MODEL_TERMINATE(void);
  extern void MODEL_STEP(int_T tid);  /* multirate step function */
 #endif
 
-Clock_Handle rt_task_handle;
-Void rt_task_function(UArg arg0);
+
+void rt_task_function(uintptr_t arg0);
 int_T rt_TermModel(void);
 
 /*==================================*
@@ -397,49 +397,37 @@ int_T rt_TermModel(void)
  * Abstract:
  *   Execute model on a generic target such as a workstation.
  */
+ int InitModel(void)
+ {
+    rt_InitModel();
+    
+    rtExtModeC6000Startup(rtmGetRTWExtModeInfo(RT_MDL),
+                          NUMST,
+                          (boolean_T *)&rtmGetStopRequested(RT_MDL));
+    return 0; 
+ }
+
 int_T main(int_T argc, const char *argv[])
 {
+#define STEP_SIZE2PERIOD    (0.000001)
+
     /* External mode */
-    Clock_Params clkParams;
-    Timer_Params user_sys_tick_params;
-    Timer_Handle user_sys_tick_timer;
+    mdaq_task_params_t params; 
 
     /************************
      * Initialize the model *
      ************************/
-    rt_InitModel();
 
     /* External mode */
     rtSetTFinalForExtMode(&rtmGetTFinal(RT_MDL));
     rtExtModeCheckInit(NUMST);
 
-    /* Create timer for user system tick */
-    Timer_Params_init(&user_sys_tick_params);
-    user_sys_tick_params.period = STEP_SIZE;
-    user_sys_tick_params.periodType = Timer_PeriodType_MICROSECS;
-    user_sys_tick_params.arg = 1;
+    mdaq_rtos_clock_create(STEP_SIZE * STEP_SIZE2PERIOD, rt_task_function); 
 
-    user_sys_tick_timer = Timer_create(1,
-    		(ti_sysbios_hal_Timer_FuncPtr)Clock_tick, &user_sys_tick_params, NULL);
-
-    if(user_sys_tick_timer == NULL)
-    {
-    	System_abort("Unable to create user system tick timer!");
-    }
-
-    /* Create a periodic Clock Instance with period = 1 system time units */
-    Clock_Params_init(&clkParams);
-    clkParams.period = 1;
-    clkParams.startFlag = TRUE;
-    rt_task_handle = Clock_create(rt_task_function, 10, &clkParams, NULL);
-    
-    rtExtModeC6000Startup(rtmGetRTWExtModeInfo(RT_MDL),
-                          NUMST,
-                          (boolean_T *)&rtmGetStopRequested(RT_MDL));
-    BIOS_start();
+    mdaq_rtos_start(1, InitModel);
 }
 
-Void rt_task_function(UArg arg0)
+void rt_task_function(uintptr_t arg0)
 {
     /* Base rate */
     rt_OneStep();

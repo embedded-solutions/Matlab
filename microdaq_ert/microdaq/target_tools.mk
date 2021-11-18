@@ -2,10 +2,8 @@
 
 # Compiler command and options
 CC = "$(CompilerRoot)/bin/cl6x"
-CFLAGS = -mv6740 --abi=eabi --include_path="$(CompilerRoot)/include" \
-         --define=omapl137 --include_path="$(XDCRoot)/packages" \
-         --include_path="$(BIOSRoot)/packages" \
-         --display_error_number --diag_warning=225 --diag_wrap=off
+CFLAGS = -mv6600  --abi=eabi --include_path="$(CompilerRoot)/include" \
+         --define=am5728 --display_error_number --diag_warning=225 --diag_wrap=off
 
 CFLAGS += $(EXT_CC_OPTS) $(OPTS)
 CDEBUG = -g
@@ -18,13 +16,13 @@ CXXDEBUG =
 
 # Linker command and options
 LD      = $(CC)
-LDFLAGS = -mv6740 --abi=eabi --define=omapl137 \
+LDFLAGS = -mv6600 --abi=eabi --define=am5728 \
           --display_error_number --diag_warning=225 --diag_wrap=off \
-          -z --stack_size=0x800 -m"$(MODEL).map" --heap_size=0x800 \
+          -z --stack_size=0x2000 -m"$(MODEL).map" --heap_size=0x2000 \
           -i"$(CompilerRoot)/lib" -i"$(CompilerRoot)/include" \
-          --reread_libs --define=DSP_CORE=1 --warn_sections --rom_model \
           -l"$(TargetRoot)/$(SYSBIOS_PATH)" \
-          -l"$(TargetRoot)/../blocks/mdaq/microdaq.lib" -l"libc.a"
+          -l"$(TargetRoot)/../blocks/mdaq/microdaq.lib" -l"libc.a" \
+          --reread_libs --define=core1 --warn_sections --rom_model
 
 LDFLAGS_EXTMODE =
 LDDEBUG =

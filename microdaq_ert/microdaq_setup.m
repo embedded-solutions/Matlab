@@ -14,10 +14,9 @@ if ispref('microdaq')
 	rmpref('microdaq');
 end
 addpref('microdaq','TargetRoot',fix_slash(curpath));
-[CompilerRoot, XDCRoot, BIOSRoot] = ccs_setup_paths;
+[CompilerRoot] = ccs_setup_paths;
 addpref('microdaq','CompilerRoot',CompilerRoot);
-addpref('microdaq','XDCRoot',XDCRoot);
-addpref('microdaq','BIOSRoot',BIOSRoot);
+
 % Ask for Target IP
 tip = inputdlg('Enter MicroDAQ IP address:','MicroDAQ IP Address',1,{'10.10.1.1'});
 ipAddr = regexp(tip{1}, '((0*(1\d\d|2[0-4]\d|25[0-4]|\d\d|\d)\.){3}0*(1\d\d|2[0-4]\d|25[0-4]|\d\d|\d))', 'match');
@@ -33,85 +32,15 @@ cd('../blocks');
 lct_genblocks;
 cd(curpath);
 
-disp('<strong>Building TI SYS/BIOS real-time operating system for MicroDAQ</strong>'); 
-% Fixes errors related to java on some systems
-if ispc
-    xdcjava = fullfile(getpref('microdaq','XDCRoot'),'jre','bin');
-    if isdir(xdcjava)
-        setenv('PATH',[getenv('PATH'),';',xdcjava]);
-    else
-        % Recent XDCTools don't ship Java. Instead, it relies on
-        % XDCTOOLS_JAVA_HOME environment variable
-        [status, out] = system('java -version');
-        if (status == 0)
-            javaver = regexp(out,'(?<=").*(?=")','match','once');
-            setenv('XDCTOOLS_JAVA_HOME',['C:\Program Files (x86)\Java\jre',javaver]);
-        else
-            error('Unable to find Java installation required for XDCTools. Make sure you have 32-bit Java installed!');
-        end
-    end
-end
-
 % Run XDC Tools on SYS/BIOS configuration file
-cd('sysbios/cpu0');
-% Remove old SYS/BIOS, if existing
-if isdir(fullfile(pwd,'configPkg'))
-    rmdir('configPkg','s');
-end
-if isdir(fullfile(pwd,'src'))
-    rmdir('src','s');
-end
-CCSRoot='';
-syscmd = [XDCRoot,'/xs --xdcpath="',BIOSRoot,'/packages;',CCSRoot,...
-'/ccs_base;" xdc.tools.configuro -o configPkg -t ti.targets.elf.C674 -p ti.platforms.evmOMAPL137 -r release -c "',...
-CompilerRoot,'" --compileOptions "-g --optimize_with_debug" ','sysbios.cfg'];
-system(syscmd);
+cd('sysbios/cpu2');
+content = fileread( 'linker_template' ) ;
+newContent = strrep( content, '||libsPath||', [getpref('microdaq','TargetRoot'),'/sysbios/cpu2/']);
 
-% Append extra linker section to main linker script 
-extra_linker_file_fd = fopen('sysbios_linker.cmd', 'r');
-if extra_linker_file_fd > -1
-    cd('configPkg'); 
-    linker_file_fd = fopen('linker.cmd', 'a');
-    if linker_file_fd > -1
-        tmp = fread(extra_linker_file_fd, Inf, '*uchar');
-        fwrite(linker_file_fd, tmp, 'uchar');
-        fclose(extra_linker_file_fd);
-        fclose(linker_file_fd);   
-    else
-        fclose(extra_linker_file_fd);
-    end
-end
-
-cd(curpath);
-
-% Run XDC Tools on SYS/BIOS configuration file
-cd('sysbios/cpu1');
-% Remove old SYS/BIOS, if existing
-if isdir(fullfile(pwd,'configPkg'))
-    rmdir('configPkg','s');
-end
-if isdir(fullfile(pwd,'src'))
-    rmdir('src','s');
-end
-
-syscmd = [XDCRoot,'/xs --xdcpath="',BIOSRoot,'/packages;',CCSRoot,...
-'/ccs_base;" xdc.tools.configuro -o configPkg -t ti.targets.elf.C674 -p ti.platforms.evmOMAPL137 -r release -c "',...
-CompilerRoot,'" --compileOptions "-g --optimize_with_debug" ','sysbios.cfg'];
-system(syscmd);
-
-% Append extra linker section to main linker script 
-extra_linker_file_fd = fopen('sysbios_linker.cmd', 'r');
-if extra_linker_file_fd > -1
-    cd('configPkg'); 
-    linker_file_fd = fopen('linker.cmd', 'a');
-    if linker_file_fd > -1
-        tmp = fread(extra_linker_file_fd, Inf, '*uchar');
-        fwrite(linker_file_fd, tmp, 'uchar');
-        fclose(extra_linker_file_fd);
-        fclose(linker_file_fd);   
-    else
-        fclose(extra_linker_file_fd);
-    end
+linker_file_fd = fopen('configPkg/linker.cmd', 'w');
+if linker_file_fd > -1
+    fwrite(linker_file_fd, newContent, 'uchar');
+    fclose(linker_file_fd);
 end
 
 cd(curpath);
@@ -128,28 +57,14 @@ disp('Explore <a href="matlab:cd([getpref(''microdaq'',''TargetRoot''),''/../dem
 cd([getpref('microdaq','TargetRoot'),'/../demos']);
 end
 
-function [CompilerRoot, XDCRoot, BIOSRoot] = ccs_setup_paths()
+function [CompilerRoot] = ccs_setup_paths()
 
-path = uigetdir(matlabroot,'Compiler root directory: (c6000_7.X.X)');
+path = uigetdir(matlabroot,'Compiler root directory: (c6000_8.X.X)');
 if path == 0 
     cd('..');
     error('Abording microdaq_setup...'); 
 end
 CompilerRoot = fix_slash(path);
-
-path = uigetdir(fileparts(CompilerRoot),'XDC Tools root directory: (xdctools_X_XX_XX_XX)');
-if path == 0 
-    cd('..');
-    error('Abording microdaq_setup...'); 
-end
-XDCRoot = fix_slash(path);
-
-path = uigetdir(fileparts(CompilerRoot),'SYS/BIOS root directory: (bios_6_XX_XX_XX)');
-if path == 0 
-    cd('..');
-    error('Abording microdaq_setup...'); 
-end
-BIOSRoot = fix_slash(path);
 end
 
 function path = fix_slash(path0)

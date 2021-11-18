@@ -1,0 +1,99 @@
+%% Copyright (C) 2013-2014 Czech Technical University in Prague
+%%
+%% Authors:
+%%     - Carlos Jenkins <carlos@jenkins.co.cr>
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are
+%% met:
+%%
+%% 1. Redistributions of source code must retain the above copyright
+%%    notice, this list of conditions and the following disclaimer.
+%%
+%% 2. Redistributions in binary form must reproduce the above copyright
+%%    notice, this list of conditions and the following disclaimer in the
+%%    documentation and/or other materials provided with the
+%%    distribution.
+%%
+%% 3. Neither the name of the copyright holder nor the names of its
+%%    contributors may be used to endorse or promote products derived
+%%    from this software without specific prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+%% A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+%% HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+%% LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+%% DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+%% THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+%%
+%% File : sfunction_printf.tlc
+%% Abstract:
+%%     TLC file for inlining RPP serial communication interface printf block.
+%%
+%% References:
+%%     BlockTypeSetup() : refs/rtw_tlc.pdf p. 277
+%%     Start()          : refs/rtw_tlc.pdf p. 279
+%%     Outputs()        : refs/rtw_tlc.pdf p. 281
+
+
+%implements sfunction_printf "C"
+
+%include "common.tlc"
+
+
+%% Function: BlockTypeSetup ====================================================
+%function BlockTypeSetup(block, system) void
+
+    %% Ensure required header files are included
+    %<RppCommonBlockTypeSetup(block, system)>
+
+%endfunction
+
+
+%% Function: Start =============================================================
+%function Start(block, system) Output
+
+    %if !SLibCodeGenForSim()
+        %%No initialization needed for this block
+    %endif
+
+%endfunction
+
+
+%% Function: Outputs ===========================================================
+%function Outputs(block, system) Output
+
+    %if !SLibCodeGenForSim()
+
+        %% %if extMode
+	%%     %return
+	%% %endif
+
+        %% Get IO signals
+        %assign data_width = LibBlockInputSignalWidth(0)
+        %assign err_flag = LibBlockOutputSignal(0, "", "", 0)
+
+        %assign printf_format = SFcnParamSettings.PrintfFormat
+        if (printf("%<printf_format>",
+            %foreach loop_i = %<data_width>
+                %assign data = LibBlockInputSignal(0, "%<loop_i>", "", 0)
+                %<data> \
+                %if loop_i < (%<data_width> - 1)
+                    ,
+                %endif
+            %endforeach
+        ) >= 0) {
+	    %<err_flag> = FALSE;
+	} else {
+	    %<err_flag> = TRUE;
+	}
+    %endif
+
+%endfunction
+
+%% [EOF]

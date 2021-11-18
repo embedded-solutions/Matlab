@@ -1,6 +1,6 @@
 /* mdaq_ao.h -- DAC driver for MicroDAQ device
  *
- * Copyright (C) 2013 Embedded Solutions
+ * Copyright (C) 2013-2021 Embedded Solutions
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms
@@ -30,37 +30,30 @@ enum mdaq_ao_ids
     AO13,
     AO14,
     AO15,
-    AO16
+    AO16,
+    AO17,
+    AO18,
+    AO19,
+    AO20,
+    AO21,
+    AO22,
+    AO23,
+    AO24,
 };
 
-/* AO converter IDs */
-enum mdaq_dac_ids
+enum mdaq_ao_error_id
 {
-    DAC01 = 1,
-    DAC02,
-    DAC03,
-    DAC04,
-    DAC05,
-    DAC06,
-    DAC07
+    ERR_AO_CHANNEL             = 1,
+    ERR_AO_RANGE               = 2,
+    ERR_AO_MODE                = 3,
+    ERR_AO_FREQ                = 4,
+    ERR_AO_HWID                = 5
 };
 
-enum mdaq_ao_range
-{
-    AO_0_TO_5V = 0,
-    AO_0_TO_10V,
-    AO_PLUS_MINUS_5V,
-    AO_PLUS_MINUS_10V,
-    AO_PLUS_MINUS_2V5
-};
-
-/* AO mode */
-#define AO_ASYNC    (1 << 1)
-#define AO_SYNC     (1 << 2)
-
-int mdaq_ao_init(uint32_t mode);
+int mdaq_ao_init(void);
 int mdaq_ao_write( uint8_t ch[], uint8_t ch_count, const double *value);
-int mdaq_ao_ch_config(uint8_t ch[], float range[], uint8_t ch_count);
+int mdaq_ao_config_ch(uint8_t ch[], uint8_t ch_count, float range[]);
 int mdaq_ao_scan_prepare_data(uint8_t ch, uint8_t range, double *value, uint32_t sample_count);
+void mdaq_ao_info(void);
 
 #endif /* MDAQ_AO_H */

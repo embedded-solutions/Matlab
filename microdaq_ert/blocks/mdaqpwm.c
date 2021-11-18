@@ -5,6 +5,7 @@
 void PWMInit(unsigned char module, unsigned int period, unsigned char polarity )
 {
 #if (!defined MATLAB_MEX_FILE) && (!defined MDL_REF_SIM_TGT)
+    mdaq_dio_init(); 
     mdaq_pwm_init(module, period,  polarity, 0, 0);
 #endif 
 }

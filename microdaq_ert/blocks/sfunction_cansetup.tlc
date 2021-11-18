@@ -1,0 +1,224 @@
+%% Copyright (C) 2014 Czech Technical University in Prague
+%%
+%% Authors:
+%%     Michal Horn  <hornmich@fel.cvut.cz>
+%%     Michal Sojka <sojkam1@fel.cvut.cz>
+%%     Pavel Pisa <pisa@cmp.felk.cvut.cz> - author of SocketCAN port
+%%
+%% Redistribution and use in source and binary forms, with or without
+%% modification, are permitted provided that the following conditions are
+%% met:
+%%
+%% 1. Redistributions of source code must retain the above copyright
+%%    notice, this list of conditions and the following disclaimer.
+%%
+%% 2. Redistributions in binary form must reproduce the above copyright
+%%    notice, this list of conditions and the following disclaimer in the
+%%    documentation and/or other materials provided with the
+%%    distribution.
+%%
+%% 3. Neither the name of the copyright holder nor the names of its
+%%    contributors may be used to endorse or promote products derived
+%%    from this software without specific prior written permission.
+%%
+%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+%% A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+%% HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+%% SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+%% LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+%% DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+%% THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+%% (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+%%
+%% File : sfunction_cansetup.tlc
+%% Abstract:
+%%     TLC file for configuring the CAN modules on the TI TMS570LS3137 MCU
+%%
+%% References:
+%%     BlockTypeSetup() : refs/rtw_tlc.pdf p. 277
+%%     Outputs()        : refs/rtw_tlc.pdf p. 281
+
+
+%implements sfunction_cansetup "C"
+
+%include "common.tlc"
+%include "rpp_can_common.tlc"
+
+%% Function: BlockTypeSetup ====================================================
+%function BlockTypeSetup(block, system) void
+
+    %% Ensure required header files are included
+    %<RppCommonBlockTypeSetup(block, system)>
+	%% %<LibAddToCommonIncludes("<sys/ti_drv_dmm.h>")>
+
+	%assign ::rpp_can_config_present = 1
+
+	%<RppCANCommonBlockTypeSetup()>
+%endfunction
+
+%function BlockInstanceSetup(block, system) void
+    %if EXISTS("rpp_canc_in_model") == 0
+        %assign ::rpp_canc_in_model = 1
+    %else
+        %<LibBlockReportError(block, "Only one CAN Setup block is allowed in the model.")>
+    %endif
+%endfunction
+
+
+%% Function: Start =============================================================
+%function Start(block, system) Output
+ %openfile buffer
+
+	enum ert_can_msg_types {
+		ERT_CAN_STANDARD,
+		ERT_CAN_EXTENDED,
+		ERT_CAN_MIXED,
+	};
+
+	struct ert_can_channel_config {
+		unsigned int baudrate;
+		const char *net_dev_name;
+	};
+
+	struct ert_can_tx_config {
+		int channel;
+		int id_type;
+        unsigned int id; 
+		int msg_obj;
+	};
+
+	struct ert_can_rx_config {
+		int channel;
+		int id_type;
+        unsigned int mask; 
+		int msg_obj;
+	};
+
+	struct ert_can_config {
+		int num_tx_obj;
+		int num_rx_obj;
+		struct ert_can_tx_config *tx_config;
+		struct ert_can_rx_config *rx_config;
+		struct ert_can_channel_config *channel_config;
+		const char **channel_ifname;
+	};
+
+	#define CAN_TX_COUNT %<Rpp.Can.Tx.NumBlocks>
+	#define CAN_RX_COUNT %<Rpp.Can.Rx.NumBlocks>
+
+	struct ert_can_channel_config can_channel_config[3] = {
+		{
+			.baudrate = %<LibBlockParameterValue(baudrate_can1, 0)>
+		},
+		{
+			.baudrate = %<LibBlockParameterValue(baudrate_can2, 0)>
+		},
+		{
+			.baudrate = %<LibBlockParameterValue(baudrate_can3, 0)>
+		}
+	};
+
+	struct ert_can_tx_config tx_config[CAN_TX_COUNT] = {
+	  %foreach id = Rpp.Can.Tx.NumBlocks
+		%with Rpp.Can.Tx.Block[id]
+		// %<Name>
+		{
+		  %if %<Type> == 1
+			.id_type = ERT_CAN_STANDARD,
+		  %elseif %<Type> == 2
+			.id_type = ERT_CAN_EXTENDED,
+		  %else
+			.id_type = ERT_CAN_MIXED,
+		  %endif
+		  .id = %<Id>,
+		  .channel = %<Controller>,
+		  .msg_obj = %<MsgObj>,
+		},
+		%endwith
+	  %endforeach
+	};
+
+	struct ert_can_rx_config rx_config[CAN_RX_COUNT] = {
+	  %foreach id = Rpp.Can.Rx.NumBlocks
+		%with Rpp.Can.Rx.Block[id]
+		// %<Name>
+		{
+		  %if %<Type>==1
+			.id_type = ERT_CAN_STANDARD,
+		  %elseif %<Type>==2
+			.id_type = ERT_CAN_EXTENDED,
+		  %else
+			.id_type = ERT_CAN_MIXED,
+		  %endif
+		  .mask = %<SPRINTF("%#x", Mask)>,
+		  .channel = %<Controller>,
+		  .msg_obj = %<MsgObj>,
+		},
+		%endwith
+	  %endforeach
+	};
+
+	const char *ert_can_channel_ifname[] = {
+		"can0", /*FIXME - for now skip this */
+		"can0",
+		"can1",
+		"can2",
+		"can3"
+	};
+
+	const struct ert_can_config can_config = {
+		.num_tx_obj = CAN_TX_COUNT,
+		.num_rx_obj = CAN_RX_COUNT,
+		.tx_config = tx_config,
+		.rx_config = rx_config,
+		.channel_config = can_channel_config,
+		.channel_ifname = ert_can_channel_ifname
+	};
+
+        int can_tx_handles[CAN_TX_COUNT];
+
+        int can_rx_handles[CAN_RX_COUNT];
+
+	%closefile buffer
+	%<LibSetSourceFileSection(LibGetModelDotCFile(), "Declarations", buffer)>
+	{
+        unsigned int can_baudrate_LUT[] = { 0, 0, 10000, 20000, 25000, 40000, 50000, 100000, 200000, 250000, 400000, 500000, 800000, 1000000 };
+        unsigned int can1_baudrate = can_baudrate_LUT[can_config.channel_config[0].baudrate];
+        unsigned int can2_baudrate = can_baudrate_LUT[can_config.channel_config[1].baudrate];
+
+        mdaq_dio_init(); 
+
+        if(can1_baudrate > 0)
+            mdaq_can_open(CAN1, can1_baudrate, can1_baudrate); 
+        
+        if(can2_baudrate > 0)
+            mdaq_can_open(CAN2, can2_baudrate, can2_baudrate); 
+
+       switch(can_config.channel_config[2].baudrate)
+       {
+            case 2: 
+                mdaq_can_enable_termination(CAN1, 1); 
+                mdaq_can_enable_termination(CAN2, 0); 
+                break; 
+            case 3: 
+                mdaq_can_enable_termination(CAN1, 0); 
+                mdaq_can_enable_termination(CAN2, 1); 
+                break; 
+            case 4: 
+                mdaq_can_enable_termination(CAN1, 1); 
+                mdaq_can_enable_termination(CAN2, 1); 
+                break; 
+           default: 
+                mdaq_can_enable_termination(CAN1, 0); 
+                mdaq_can_enable_termination(CAN2, 0); 
+       }
+	}
+	%%else {
+	%%	printf("CAN communication initialized.\n");
+	%%}
+ %endfunction
+
+%% [EOF]

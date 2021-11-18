@@ -349,7 +349,7 @@ PUBLIC boolean_T ExtOpenConnection(
 {
     boolean_T error;
     UD->streamID = rtIOStreamOpen(NULL, NULL);
-    if (UD->streamID > 0) {
+    if (UD->streamID >= 0) {
         *outConnectionMade = 1;
         error = EXT_NO_ERROR;
     } else {

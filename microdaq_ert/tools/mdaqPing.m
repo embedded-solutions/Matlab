@@ -44,7 +44,10 @@ if result < 0
     error('%s',out);
 end
 
-if hwid.Value(1) ~= 2000 && hwid.Value(1) ~= 1100 && hwid.Value(1) ~= 1000 
+if hwid.Value(1) ~= 3000 &&...
+   hwid.Value(1) ~= 2000 &&...
+   hwid.Value(1) ~= 1100 &&...
+   hwid.Value(1) ~= 1000 
     mdaqClose();
     error('Unknown MicroDAQ device');
 end
@@ -56,9 +59,14 @@ path = [TargetRoot,  '/sysbios.mk'];
 path(path=='\')='/';
 
 fileID = fopen(path, 'w+');
-fprintf(fileID,'SYSBIOS_PATH=sysbios/cpu%d/configPkg/linker.cmd', hwid.Value(4));
-fclose(fileID);
 
+if hwid.Value(1) == 3000
+    cpuId = 2; 
+else
+    cpuId = hwid.Value(4);
+end
+fprintf(fileID,'SYSBIOS_PATH=sysbios/cpu%d/configPkg/linker.cmd', cpuId);
+fclose(fileID);
 mdaqClose();
 
  

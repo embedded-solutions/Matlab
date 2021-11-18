@@ -2,8 +2,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "mdaq_file.h"
 #include <stdint.h>
+#include "mdaq_file.h"
+#include "mdaq_mem.h"
+
 
 /* TODO: In case of more than one ToFile block, SH_MALLOC_SIZE should be smaller */
 #define SH_MALLOC_SIZE		(0x80000) //0.5 MB
@@ -31,7 +33,6 @@ typedef struct file_data
 
 static file_data_t file_data[MDAQ_MAX_FILE];
 
-extern void *sh_malloc(uint32_t size);
 extern double get_model_tsamp(void);
 
 #endif
@@ -68,7 +69,7 @@ void ToFileInit(char *file_name, unsigned char mode, unsigned long buf_len,
 
     //Allocate memory
 	if(file_data[block_num].buff0.ptr == NULL)
-		file_data[block_num].buff0.ptr = (char *)sh_malloc(SH_MALLOC_SIZE);
+		file_data[block_num].buff0.ptr = (char *)mdaq_malloc(SH_MALLOC_SIZE);
 
 	if(file_data[block_num].buff0.ptr != NULL)
 		memset((void *) file_data[block_num].buff0.ptr, 0x0, SH_MALLOC_SIZE);

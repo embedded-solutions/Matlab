@@ -9,7 +9,7 @@ void ADCInit(unsigned char *ch, unsigned char ch_count, float *range, unsigned c
     if( ch_count > AI16 )
         return;
 
-    mdaq_ai_init(AI_NONE, AI_NONE, AI_NONE);
+    mdaq_ai_init();
     mdaq_ai_config_ch(ch, ch_count, range, mode);
 
 #endif

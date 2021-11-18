@@ -14,19 +14,31 @@
 
 #include "rtiostream.h"
 #include "mdaq_net.h"
+#include "mdaq_mem.h"
 
 #ifdef DEBUG_RTIOSTREAM
 #include <stdio.h>
 #endif
 
 
+static int mem_allocated = 0; 
+static char *rtiostream_rx_buffer; 
+static char *rtiostream_tx_buffer; 
+#define RTIOSTREAM_BUFFER_SZ        (0x800000)
+
 /* Initialize rtIOStream */
 int rtIOStreamOpen(int argc, void *argv[])
 {
+    
 	int fd;
-	mdaq_net_init();
-
-	fd = mdaq_net_open(4344, SOCK_STREAM, IPPROTO_TCP, 0, 1 /* blocking */ );
+    if(!mem_allocated)
+    {
+        rtiostream_tx_buffer = mdaq_malloc(RTIOSTREAM_BUFFER_SZ); 
+        rtiostream_rx_buffer = mdaq_malloc(RTIOSTREAM_BUFFER_SZ); 
+        mem_allocated = 1; 
+    }
+	
+    fd = mdaq_net_open(4344, SOCK_STREAM, IPPROTO_TCP, 0, 1 /* blocking */ );
 #ifdef DEBUG_RTIOSTREAM
 	printf("rtIOStreamOpen: %d\n", fd);
 #endif
@@ -47,11 +59,14 @@ int rtIOStreamRecv(
 {
 	int result = 0;
 
-    result = mdaq_net_recv(streamID, dst, size, MSG_DONTWAIT);
+    result = mdaq_net_recv(streamID, rtiostream_rx_buffer, size, MSG_DONTWAIT);
     if ( result >= 0)
     	*sizeRecvd = result;
     else
     	*sizeRecvd = 0;
+    
+    memcpy(dst, rtiostream_rx_buffer, *sizeRecvd); 
+    
 #ifdef DEBUG_RTIOSTREAM
     printf("rtIOStreamRecv: size:%d result:%d\n", size, result);
 #endif
@@ -69,7 +84,8 @@ int rtIOStreamSend(
         size_t     * sizeSent)
 {
 	int result = 0;
-	result = mdaq_net_send(streamID, src, size, 0);
+    memcpy(rtiostream_tx_buffer, src, size); 
+	result = mdaq_net_send(streamID, rtiostream_tx_buffer, size, 0);
 #ifdef DEBUG_RTIOSTREAM
 	printf("rtIOStreamSend: size:%d result:%d\n", size, result);
 #endif

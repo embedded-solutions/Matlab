@@ -32,6 +32,8 @@ end
 
 
 disp('### Using MLink for download...');
+disp(outfile); 
+disp(TargetRoot); 
 mlink_download(outfile,TargetRoot,0);
 
 end

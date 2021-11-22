@@ -15,61 +15,46 @@ generate C code and deploy your algorithms to target hardware.
 
 **Supported Matlab version:**
 
-This package will work with R2013a and newer Matlab releases. 
+This package will work with R2013a - R2017a. 
 
 Installation
 ============
 
-1) Install latest MicroDAQ firmware from: https://github.com/embedded-solutions/microdaq-firmware/releases
-Download latest MicroDAQ firmware, unpack it, connect MicroDAQ with USB cable, copy OPK package to 'upgrade' directory on MicroDAQ user-disk. In order to flash new firmware open web interface in web browser by entering MicroDAQ IP addres (10.10.1.1 default) and select Install upgrade. After MicroDAQ reboot you can perform next step.
+1) Install latest MicroDAQ firmware from firmware directory.
+- Open web browser and enter MicroDAQ IP address to open MicroDAQ Web Panel
+- Go to 'File manager' and navigate to 'upgrade' direcotry 
+- Click upload icon (plus sign - top-right side of File manager)
+- Press first button and navigate to firmware directory (downloaded with Simulink Target for MicroDAQ). Confirm with 'Open'
+- The 'opk' file shall be uploaded on target and visible in 'upgrade' directory.
+- Go to Upgrade (left-side menu) and confirm with Upgrade button. 
+- After device reboot check info and installed firmware version
 
-2) Windows/Linux: Have Code Composer Studio 5.3 - 5.5 installed (http://processors.wiki.ti.com/index.php/Download_CCS). Make sure your installation is full, otherwise you might miss some files (like Device support files for OMAPL137). Code Composer Studio 6 is not supported at the moment.
-
-3) Make sure your toolchain is working (build and download some test project, check connection)
-before you proceed! "docs/MicroDAQ Quick Start Guide.pdf" is a useful document that will guide you through this process.
-This step is not required, but it is strongly advised to get yourself familiar with some basic concepts.
-
-4) Make sure you have a working/supported host compiler (http://www.mathworks.com/support/compilers/index.html) by running
+2) Install DSP compiler for MicroDAQ 
+This compiler will be used by Matlab/Simulink to compile generated code. You will be asked for install path when configuring Simulink Target for MicroDAQ with 'microdaq_setup' Matlab script.
+- Download C6000 DSP compiler from: https://www.ti.com/tool/download/C6000-CGT-8-3/8.3.2
+- Install compiler (do not use spaces in paths)
+3) Make sure you have a working/supported host compiler (http://www.mathworks.com/support/compilers/index.html) by running
         
         mex -setup
 in MATLAB.
 Avoid using the lcc compiler which ships with MATLAB for Windows. It is known to cause problems.
 
-5) Extract this package somewhere. Make sure there are no spaces/non-ASCII characters in path (just in case).
+4) Configure Simulink Target for MicroDAQ
+- In Matlab navigate to directory 'microdaq_ert' which should contain 'microdaq_setup.m' script. 
+- Run scropt from Matlab console 
+- You will be asked to point directory in which C6000 DSP compiler is installed (see point 2). Example path can be: c:\ti\ti-cgt-c6000_8.3.2\
+- In the next step provide IP address of MicroDAQ device. By default 10.10.1.1 is for Ethernet, 10.10.2.1 is for Wi-Fi and 10.10.3.1 is for Ethernet over USB. Connection with MicroDAQ should be verified with standard system 'ping' command executed from windows command line. 
+- After script completion verify connection with 'mdaqPing' Matlab command.
+- If 'mdaqPing' return 'SUCCESS" you can start using Matlab/Simulink with MicroDAQ. 
 
-6) Within MATLAB, 'cd' to the directory containing *microdaq_setup.m* and run this script.
 
-You should be good to go.
-
-Key Features
-============
-
-- Automatic build and download to target using MLink or JTAG (selected by user)
-- Standalone execution on target (driven by SYS/BIOS timer)
-- Execution in PIL mode
-- External Mode support
-- PIL mode profiling
-
-- Simulink library blocks for:
-        
-        * ADC
-        * DAC
-        * Quadrature Encoder
-        * MEMORY R/W
-        * DIO
-        * Built-in LEDs
-        * Built-in KEYs
-        * PRU - Real-time processing unit
-        * PWM
-        * File operations
-        * TCP/IP (client) and UDP Send/Receive
 
 TODO
 ============
 
-- Simulink library blocks for:
-
-        * TCP/IP (server) Send/Receive
-        * RAW Ethernet
- 
+- CAN Receive need CAN Pack block in model. Unable to call mdlInitialize_CAN_datatype(S) in S-function due to 'mex' linkage problem with scanutil.lib. https://www.mathworks.com/help/vnt/ug/create-custom-can-blocks.html
+- PIL mode from time to time has problem with connecting to MicroDAQ
+- TCP/UDP blocks are not supported 
+- MEM blocks are not supported
 - More documentation
+- More demos

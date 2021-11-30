@@ -5,7 +5,7 @@ CC = "$(CompilerRoot)/bin/cl6x"
 CFLAGS = -mv6600  --abi=eabi --include_path="$(CompilerRoot)/include" \
          --define=am5728 --display_error_number --diag_warning=225 --diag_wrap=off
 
-CFLAGS += $(EXT_CC_OPTS) $(OPTS)
+CFLAGS += $(EXT_CC_OPTS) $(OPTS) $(DEFINES_OTHER)
 CDEBUG = -g
 CFLAGS_OPT= -O2
 CCOUTPUTFLAG = --output_file=

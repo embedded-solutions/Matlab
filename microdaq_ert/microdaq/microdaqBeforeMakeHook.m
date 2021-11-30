@@ -1,17 +1,17 @@
-function [ ] = microdaqBeforeMakeHook( modelName, buildOpts )
+function [ ] = microdaqBeforeMakeHook( modelName, buildOpts, buildInfo )
 
 % Check the model if a target_paths.mk should be created
 if (strcmp(get_param(modelName,'SystemTargetFile')  ,'microdaq.tlc') && ...
-    strcmp(get_param(modelName,'TemplateMakefile')  ,'microdaq.tmf') && ...
-    strcmp(get_param(modelName,'TargetHWDeviceType'),'Texas Instruments->C6000'))
+        strcmp(get_param(modelName,'TemplateMakefile')  ,'microdaq.tmf') && ...
+        strcmp(get_param(modelName,'TargetHWDeviceType'),'Texas Instruments->C6000'))
 
     TargetRoot = getpref('microdaq','TargetRoot');
     CompilerRoot = getpref('microdaq','CompilerRoot');
 
 
-    % check if sysbios.mk exists 
+    % check if sysbios.mk exists
     if ~exist([TargetRoot, '/sysbios.mk'],'file')
-            error('Error: Run mdaqPing to detect your hardware first');
+        error('Error: Run mdaqPing to detect your hardware first');
     end
 
     % Create the target paths makefile
@@ -30,7 +30,12 @@ if (strcmp(get_param(modelName,'SystemTargetFile')  ,'microdaq.tlc') && ...
         Ts = Ts*1e6;
     end
     fprintf(fid,'SAMPLE_TIME = %s\n',num2str(Ts));
+    if isExternalMode(buildInfo)
+        fprintf(fid, 'EXT_MODE = 1');
+        buildInfo.removeSourceFiles({'updown.c','ext_work.c','ext_svr.c'});
+    end
     fclose(fid);
+    buildInfo.removeSourceFiles('rt_main.c');
     if buildOpts.codeWasUpToDate
         % Perform hook actions for up to date model
     else
@@ -40,4 +45,10 @@ if (strcmp(get_param(modelName,'SystemTargetFile')  ,'microdaq.tlc') && ...
             delete('ext_main.o');
         end
     end
+end
+end
+
+function res = isExternalMode(buildInfo)
+[~, res] = buildInfo.findBuildArg('EXT_MODE');
+res = str2double(res);
 end

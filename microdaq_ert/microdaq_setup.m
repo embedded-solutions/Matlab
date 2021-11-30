@@ -32,6 +32,9 @@ cd('../blocks');
 lct_genblocks;
 cd(curpath);
 
+% Register toolchain
+microdaq_tc_refresh;
+
 % Run XDC Tools on SYS/BIOS configuration file
 cd('sysbios/cpu2');
 content = fileread( 'linker_template' ) ;

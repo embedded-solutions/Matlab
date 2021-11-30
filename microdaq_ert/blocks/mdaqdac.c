@@ -28,7 +28,7 @@ void DACInit(unsigned char *ch, unsigned char ch_count, float *range, double *in
     mdaq_ao_init();
 
     /* set DAC ranges */
-    mdaq_ao_config_ch(ch, range, ch_count);
+    mdaq_ao_config_ch(ch, ch_count, range);
 
     k = 0;
     for(i = 0; i < ch_count; i++)

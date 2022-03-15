@@ -94,7 +94,7 @@
   %<fcnReturns> %<fcnName>(%<fcnParams>)
   {
     mdaq_rtos_clock_create(get_model_tsamp(), clk0Fxn);
-    mdaq_rtos_start(0, init_model);
+    mdaq_rtos_start(1, init_model);
   }
 
 /*

@@ -6,11 +6,16 @@
 void ADCInit(unsigned char *ch, unsigned char ch_count, float *range, unsigned char *mode)
 {
 #if (!defined MATLAB_MEX_FILE) && (!defined MDL_REF_SIM_TGT)
-    if( ch_count > AI16 )
+    if( ch_count > AI48 )
         return;
+    unsigned char i; 
+    unsigned int opt[AI48] = {0}; 
+
+    for(i = 0; i < ch_count; i++)
+        opt[i] = mode[i] == 0 ? AI_SINGLE : AI_DIFF; 
 
     mdaq_ai_init();
-    mdaq_ai_config_ch(ch, ch_count, range, mode);
+    mdaq_ai_config_ch(ch, ch_count, range, opt);
 
 #endif
 }

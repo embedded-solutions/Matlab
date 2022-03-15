@@ -82,6 +82,7 @@ enum protocol_type{
 int mdaq_net_init( void );
 
 int mdaq_net_open(int port, int type, int protocol, int flags, int blocking);
+int mdaq_net_open2(char *ip_addr, int port, int type, int protocol, int flags, int blocking);
 int mdaq_net_close(int fd);
 int mdaq_net_recv(int fd, void *buf, size_t len, int flags);
 int mdaq_net_send(int fd, const void *buf, size_t len, int flags);

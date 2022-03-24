@@ -30,11 +30,13 @@ if (strcmp(get_param(modelName,'SystemTargetFile')  ,'microdaq.tlc') && ...
         Ts = Ts*1e6;
     end
     fprintf(fid,'SAMPLE_TIME = %s\n',num2str(Ts));
-    if isExternalMode(buildInfo)
-        fprintf(fid, 'EXT_MODE = 1');
-        try
-            buildInfo.removeSourceFiles({'updown.c','ext_work.c','ext_svr.c'});
-        catch
+    if ~verLessThan('matlab', '9.3')
+        if isExternalMode(buildInfo)
+            fprintf(fid, 'EXT_MODE = 1');
+            try
+                buildInfo.removeSourceFiles({'updown.c','ext_work.c','ext_svr.c'});
+            catch
+            end
         end
     end
     fclose(fid);

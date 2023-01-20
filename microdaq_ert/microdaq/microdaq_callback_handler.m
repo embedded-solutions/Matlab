@@ -30,4 +30,4 @@ slConfigUISetVal(hDlg, hSrc, 'PostCodeGenCommand', 'microdaq_postcodegen(buildIn
 % External Mode default settings
 slConfigUISetVal(hDlg, hSrc, 'ExtModeMexArgs', 'getpref(''microdaq'',''TargetIP'') 1 4344');
 slConfigUISetVal(hDlg, hSrc, 'ExtModeStaticAlloc', 'On');
-slConfigUISetVal(hDlg, hSrc, 'ExtModeStaticAllocSize', '1085760');
+slConfigUISetVal(hDlg, hSrc, 'ExtModeStaticAllocSize', '3145728');

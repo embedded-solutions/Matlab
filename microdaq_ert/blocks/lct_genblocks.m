@@ -167,41 +167,41 @@ MDAQFNCKEY.SampleTime = 'parameterized';
 % Support calling from within For-Each subsystem
 MDAQFNCKEY.Options.supportsMultipleExecInstances = true;
 % 
-% % UART Config 
-% MDAQUARTCONF = legacy_code('initialize');
-% MDAQUARTCONF.SFunctionName = 'sfun_MDAQUARTCONF';
-% MDAQUARTCONF.HeaderFiles = {'mdaquart.h', 'mdaq_uart.h'};
-% MDAQUARTCONF.SourceFiles = {'mdaquart.c'};
-% MDAQUARTCONF.IncPaths = {'mdaq'};
-% MDAQUARTCONF.SrcPaths = {'mdaq'};
-% MDAQUARTCONF.StartFcnSpec = 'UARTConfig(uint8 p1, uint8 p2, uint8 p3, uint8 p4, uint8 p5, uint8 p6)';
-% %%MDAQUARTCONF.SampleTime = 'parameterized';
-% % Support calling from within For-Each subsystem
-% MDAQUARTCONF.Options.supportsMultipleExecInstances = true;
-% 
-% % UART Send 
-% MDAQUARTSEND = legacy_code('initialize');
-% MDAQUARTSEND.SFunctionName = 'sfun_MDAQUARTSEND';
-% MDAQUARTSEND.HeaderFiles = {'mdaquart.h', 'mdaq_uart.h'};
-% MDAQUARTSEND.SourceFiles = {'mdaquart.c'};
-% MDAQUARTSEND.IncPaths = {'mdaq'};
-% MDAQUARTSEND.SrcPaths = {'mdaq'};
-% MDAQUARTSEND.OutputFcnSpec = 'UARTSend(uint8 p1, uint8 u1[p2], uint8 p2)';
-% MDAQUARTSEND.SampleTime = 'parameterized';
-% % Support calling from within For-Each subsystem
-% MDAQUARTSEND.Options.supportsMultipleExecInstances = true;
-% 
-% % UART Receive 
-% MDAQUARTRECV = legacy_code('initialize');
-% MDAQUARTRECV.SFunctionName = 'sfun_MDAQUARTRECV';
-% MDAQUARTRECV.HeaderFiles = {'mdaquart.h', 'mdaq_uart.h'};
-% MDAQUARTRECV.SourceFiles = {'mdaquart.c'};
-% MDAQUARTRECV.IncPaths = {'mdaq'};
-% MDAQUARTRECV.SrcPaths = {'mdaq'};
-% MDAQUARTRECV.OutputFcnSpec = 'UARTRecv(uint8 p1, uint8 y1[p2], int32 y2[1], uint8 p2, uint8 p3, uint8 p4, uint32 p5, uint8 p6)';
-% MDAQUARTRECV.SampleTime = 'parameterized';
-% % Support calling from within For-Each subsystem
-% MDAQUARTRECV.Options.supportsMultipleExecInstances = true;
+% UART Config 
+MDAQUARTCONF = legacy_code('initialize');
+MDAQUARTCONF.SFunctionName = 'sfun_MDAQUARTCONF';
+MDAQUARTCONF.HeaderFiles = {'mdaquart.h', 'mdaq_uart.h'};
+MDAQUARTCONF.SourceFiles = {'mdaquart.c'};
+MDAQUARTCONF.IncPaths = {'mdaq'};
+MDAQUARTCONF.SrcPaths = {'mdaq'};
+MDAQUARTCONF.StartFcnSpec = 'UARTConfig(uint8 p1, uint8 p2, uint8 p3, uint8 p4, uint8 p5, uint8 p6)';
+%%MDAQUARTCONF.SampleTime = 'parameterized';
+% Support calling from within For-Each subsystem
+MDAQUARTCONF.Options.supportsMultipleExecInstances = true;
+
+% UART Send 
+MDAQUARTSEND = legacy_code('initialize');
+MDAQUARTSEND.SFunctionName = 'sfun_MDAQUARTSEND';
+MDAQUARTSEND.HeaderFiles = {'mdaquart.h', 'mdaq_uart.h'};
+MDAQUARTSEND.SourceFiles = {'mdaquart.c'};
+MDAQUARTSEND.IncPaths = {'mdaq'};
+MDAQUARTSEND.SrcPaths = {'mdaq'};
+MDAQUARTSEND.OutputFcnSpec = 'UARTSend(uint8 p1, uint8 u1[p2], uint8 p2)';
+MDAQUARTSEND.SampleTime = 'parameterized';
+% Support calling from within For-Each subsystem
+MDAQUARTSEND.Options.supportsMultipleExecInstances = true;
+
+% UART Receive 
+MDAQUARTRECV = legacy_code('initialize');
+MDAQUARTRECV.SFunctionName = 'sfun_MDAQUARTRECV';
+MDAQUARTRECV.HeaderFiles = {'mdaquart.h', 'mdaq_uart.h'};
+MDAQUARTRECV.SourceFiles = {'mdaquart.c'};
+MDAQUARTRECV.IncPaths = {'mdaq'};
+MDAQUARTRECV.SrcPaths = {'mdaq'};
+MDAQUARTRECV.OutputFcnSpec = 'UARTRecv(uint8 p1, uint8 y1[p2], int32 y2[1], uint8 p2, uint8 p3, uint8 p4, uint32 p5, uint8 p6)';
+MDAQUARTRECV.SampleTime = 'parameterized';
+% Support calling from within For-Each subsystem
+MDAQUARTRECV.Options.supportsMultipleExecInstances = true;
 
 % PWM
 MDAQPWM = legacy_code('initialize');
@@ -335,6 +335,7 @@ MDAQTCPRECV.Options.supportsMultipleExecInstances = true;
 def = [MDAQLED(:);MDAQADC(:);MDAQDAC(:);MDAQQEP(:);MDAQMEMWR(:);MDAQMEMRD(:);...
        MDAQDIOCONF(:);MDAQDIOSET(:);MDAQDIOGET(:);MDAQFNCKEY(:);...
        MDAQPWM(:);TOFILE(:);MDAQUDPSEND(:);MDAQUDPRECV(:);...
+       MDAQUARTCONF(:); MDAQUARTSEND(:); MDAQUARTRECV(:);...
        MDAQTCPSEND(:);MDAQTCPRECV(:)];
 
 %% Legacy Code Tool

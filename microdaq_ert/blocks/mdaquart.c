@@ -18,30 +18,33 @@ void UARTConfig( unsigned char module, unsigned char baud_rate, unsigned char da
     if ( module > 2 )
         return ; 
 
-    mdaq_uart_init(); 
+    module = 0; 
 
     switch(baud_rate)
     {
-        case 1: 
-            uart[module].baud_rate = B2400; 
-            break;
-        case 2: 
-            uart[module].baud_rate = B4800; 
-            break;
-        case 3: 
+        case 0: 
             uart[module].baud_rate = B9600; 
             break;
-        case 4: 
+        case 1: 
             uart[module].baud_rate = B19200; 
             break;
-        case 5: 
+        case 2: 
             uart[module].baud_rate = B38400; 
             break;
-        case 6: 
+        case 3: 
             uart[module].baud_rate = B57600; 
             break;
-        case 7: 
+        case 4: 
             uart[module].baud_rate = B115200; 
+            break;
+        case 5: 
+            uart[module].baud_rate = B230400; 
+            break;
+        case 6: 
+            uart[module].baud_rate = B460800; 
+            break;
+        case 7: 
+            uart[module].baud_rate = B921600; 
             break;
         default: 
             uart[module].baud_rate = B115200; 
@@ -50,13 +53,8 @@ void UARTConfig( unsigned char module, unsigned char baud_rate, unsigned char da
     uart[module].data_bits = data_bits; 
     uart[module].parity = parity; 
     uart[module].stop_bits = stop_bits; 
-    uart[module].flow_control = flow_control; 
 
-    result = mdaq_uart_open(module);    
-    if ( result < 0 ) 
-        return; 
-
-    result = mdaq_uart_config(module, &(uart[module]));     
+    result = mdaq_uart_open(&(uart[module]));     
     if ( result < 0 ) 
         return; 
 #endif
@@ -65,7 +63,7 @@ void UARTConfig( unsigned char module, unsigned char baud_rate, unsigned char da
 void UARTSend( unsigned char module, unsigned char *data, unsigned int size )
 {
 #if (!defined MATLAB_MEX_FILE) && (!defined MDL_REF_SIM_TGT)
-    mdaq_uart_write(module, (void *)data, size); 
+    mdaq_uart_write((void *)data, size); 
 #endif
 }
 
@@ -74,15 +72,27 @@ void UARTRecv( unsigned char module, unsigned char *data, int *status, unsigned 
 {
 #if (!defined MATLAB_MEX_FILE) && (!defined MDL_REF_SIM_TGT)
 
+    int result = mdaq_uart_read(data, size, blocking ? timeout : 0); 
+    
+     *status = result > 0 ? result : 0; 
+#if 0 
     int data_idx = 0;
+    int result; 
 
     static unsigned char rx_buffer[RX_BUF_SIZE + 4]; /* 4 bytes for header */
     static int rx_buf_idx = 0;
     static int msg_header_at = 0; 
 
-    int result = mdaq_uart_read(module, rx_buffer + rx_buf_idx,
-            size + ( sizeof(msg_header) - rx_buf_idx) , blocking ? timeout : 0);
-
+    if(use_msg_header)
+    {    
+        result = mdaq_uart_read(rx_buffer + rx_buf_idx,
+                size + ( sizeof(msg_header) - rx_buf_idx) , blocking ? timeout * 1000 : 0);
+    }
+    else
+    {
+        result = mdaq_uart_read(rx_buffer, size, blocking ? timeout * 1000 : 0);
+    }
+    
     if ( use_msg_header )
     {
         if ( result > 0 ) 
@@ -149,6 +159,7 @@ void UARTRecv( unsigned char module, unsigned char *data, int *status, unsigned 
         else 
             *status = result > 0 ? result : 0; 
     }
+#endif 
 
 #endif
 }

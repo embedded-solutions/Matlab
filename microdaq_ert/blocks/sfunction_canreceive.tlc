@@ -119,7 +119,7 @@
       can_rx_header_t rx_header = {0};
       unsigned char can_rx_data[8] = {0}; 
 
-       while(mdaq_can_read_fifo(%<RppRxInfo.HwObj> ? CAN2 : CAN1, 0, &rx_header, can_rx_data) > 0)
+       while(mdaq_can_read_fifo( rx_config[0].channel - 1, 0, &rx_header, can_rx_data) > 0)
        {
 
         %if %<data_type_par>==4

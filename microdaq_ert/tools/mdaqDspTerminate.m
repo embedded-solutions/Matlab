@@ -1,4 +1,4 @@
-function mdaqReset()
+function mdaqDspTerminate()
 
 TargetIP = getpref('microdaq','TargetIP');
 disp(TargetIP)
